@@ -360,7 +360,7 @@ namespace Stockfish::Eval::NNUE::Layers {
       return output;
     }
 
-   private:
+   public:
     using BiasType = OutputType;
     using WeightType = std::int8_t;
 
@@ -526,7 +526,7 @@ namespace Stockfish::Eval::NNUE::Layers {
       return output;
     }
 
-   private:
+   public:
     using BiasType = OutputType;
     using WeightType = std::int8_t;
 

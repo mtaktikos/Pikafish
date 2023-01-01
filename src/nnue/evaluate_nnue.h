@@ -54,6 +54,9 @@ namespace Stockfish::Eval::NNUE {
   template <typename T>
   using LargePagePtr = std::unique_ptr<T, LargePageDeleter<T>>;
 
+  // Evaluation function
+  extern AlignedPtr<Network> network[LayerStacks];
+
 }  // namespace Stockfish::Eval::NNUE
 
 #endif // #ifndef NNUE_EVALUATE_NNUE_H_INCLUDED
