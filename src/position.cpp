@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include <cstring> // For std::memset, std::memcmp
 #include <iomanip>
 #include <sstream>
-#include <string_view>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -43,7 +42,7 @@ namespace Zobrist {
 
 namespace {
 
-constexpr std::string_view PieceToChar(" RACPNBK racpnbk");
+const string PieceToChar(" RACPNBK racpnbk");
 
 constexpr Piece Pieces[] = { W_ROOK, W_ADVISOR, W_CANNON, W_PAWN, W_KNIGHT, W_BISHOP, W_KING,
                              B_ROOK, B_ADVISOR, B_CANNON, B_PAWN, B_KNIGHT, B_BISHOP, B_KING };
@@ -200,6 +199,7 @@ void Position::set_check_info(StateInfo* si) const {
 void Position::set_state(StateInfo* si) const {
 
   si->key = 0;
+  si->material[WHITE] = si->material[BLACK] = VALUE_ZERO;
   si->checkersBB = checkers_to(~sideToMove, square<KING>(sideToMove));
   si->move = MOVE_NONE;
 
@@ -210,6 +210,9 @@ void Position::set_state(StateInfo* si) const {
       Square s = pop_lsb(b);
       Piece pc = piece_on(s);
       si->key ^= Zobrist::psq[pc][s];
+
+      if (type_of(pc) != KING)
+          si->material[color_of(pc)] += PieceValue[MG][pc];
   }
 
   if (sideToMove == BLACK)
@@ -450,9 +453,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   Piece pc = piece_on(from);
   Piece captured = piece_on(to);
 
-  dp.requires_refresh[WHITE] = pc == W_KING;
-  dp.requires_refresh[BLACK] = pc == B_KING;
-
   assert(color_of(pc) == us);
   assert(captured == NO_PIECE || color_of(captured) == them);
   assert(type_of(captured) != KING);
@@ -461,6 +461,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       Square capsq = to;
 
+      st->material[them] -= PieceValue[MG][captured];
+
       dp.dirty_num = 2;  // 1 piece moved, 1 piece captured
       dp.piece[1] = captured;
       dp.from[1] = capsq;
@@ -468,11 +470,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Update board and piece lists
       remove_piece(capsq);
-
-      dp.requires_refresh[WHITE] |= captured == W_ADVISOR && !count<ADVISOR>(WHITE);
-      dp.requires_refresh[WHITE] |= captured ==  W_BISHOP && !count< BISHOP>(WHITE);
-      dp.requires_refresh[BLACK] |= captured == B_ADVISOR && !count<ADVISOR>(BLACK);
-      dp.requires_refresh[BLACK] |= captured ==  B_BISHOP && !count< BISHOP>(BLACK);
 
       // Update hash key
       k ^= Zobrist::psq[captured][capsq];
@@ -560,9 +557,8 @@ void Position::do_null_move(StateInfo& newSt) {
   newSt.previous = st;
   st = &newSt;
 
-  st->dirtyPiece.dirty_num = 0; // Avoid checks in UpdateAccumulator()
-  st->dirtyPiece.requires_refresh[WHITE] = false;
-  st->dirtyPiece.requires_refresh[BLACK] = false;
+  st->dirtyPiece.dirty_num = 0;
+  st->dirtyPiece.piece[0] = NO_PIECE; // Avoid checks in UpdateAccumulator()
   st->accumulator.computed[WHITE] = false;
   st->accumulator.computed[BLACK] = false;
 

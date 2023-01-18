@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,13 +41,12 @@ typedef WORD(*fun5_t)();
 }
 #endif
 
-#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <string_view>
 #include <vector>
+#include <cstdlib>
 
 #if defined(__linux__) && !defined(__ANDROID__)
 #include <stdlib.h>
@@ -69,8 +68,9 @@ namespace Stockfish {
 
 namespace {
 
-/// Version number or dev.
-constexpr string_view version = "dev";
+/// Version number. If Version is left empty, then compile date in the format
+/// DD-MM-YY and show in engine_info.
+const string Version = "";
 
 /// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
 /// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
@@ -146,17 +146,14 @@ public:
 
 string engine_info(bool to_uci) {
 
-  stringstream ss;
+  const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+  string month, day, year;
+  stringstream ss, date(__DATE__); // From compiler, format is "Sep 21 2008"
 
-  ss << "Pikafish " << version << setfill('0');
+  ss << "Pikafish " << Version << setfill('0');
 
-  if constexpr (version == "dev")
+  if (Version.empty())
   {
-      ss << " ";
-      constexpr string_view months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-      string month, day, year;
-      stringstream date(__DATE__); // From compiler, format is "Sep 21 2008"
-
       date >> month >> day >> year;
       ss << year << "-" << setw(2) << (1 + months.find(month) / 4) << "-" << setw(2) << day;
   }
@@ -399,7 +396,7 @@ static void* aligned_large_pages_alloc_windows([[maybe_unused]] size_t allocSize
   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hProcessToken))
       return nullptr;
 
-  if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid))
+  if (LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luid))
   {
       TOKEN_PRIVILEGES tp { };
       TOKEN_PRIVILEGES prevTp { };
@@ -418,10 +415,10 @@ static void* aligned_large_pages_alloc_windows([[maybe_unused]] size_t allocSize
           // Round up size to full pages and allocate
           allocSize = (allocSize + largePageSize - 1) & ~size_t(largePageSize - 1);
           mem = VirtualAlloc(
-              nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
+              NULL, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
 
           // Privilege no longer needed, restore previous state
-          AdjustTokenPrivileges(hProcessToken, FALSE, &prevTp, 0, nullptr, nullptr);
+          AdjustTokenPrivileges(hProcessToken, FALSE, &prevTp, 0, NULL, NULL);
       }
   }
 
@@ -439,7 +436,7 @@ void* aligned_large_pages_alloc(size_t allocSize) {
 
   // Fall back to regular, page aligned, allocation if necessary
   if (!mem)
-      mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+      mem = VirtualAlloc(NULL, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
   return mem;
 }
@@ -503,7 +500,7 @@ void bindThisThread(size_t) {}
 /// API and returns the best node id for the thread with index idx. Original
 /// code from Texel by Peter Österlund.
 
-static int best_node(size_t idx) {
+int best_node(size_t idx) {
 
   int threads = 0;
   int nodes = 0;

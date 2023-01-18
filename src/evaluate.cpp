@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ namespace Eval {
 
     vector<string> dirs = { "" , CommandLine::binaryDirectory };
 
-    for (const string& directory : dirs)
+    for (string directory : dirs)
         if (currentEvalFileName != eval_file)
         {
             ifstream stream(directory + eval_file, ios::binary);
@@ -96,7 +96,7 @@ namespace Trace {
 
   enum Tracing { NO_TRACE, TRACE };
 
-  static double to_cp(Value v) { return double(v) / PawnValueEg; }
+  double to_cp(Value v) { return double(v) / PawnValueEg; }
 }
 
 using namespace Trace;
@@ -107,25 +107,19 @@ using namespace Trace;
 Value Eval::evaluate(const Position& pos, int* complexity) {
 
   int nnueComplexity;
-  Value nnue = NNUE::evaluate(pos, &nnueComplexity);
-  Value  psq = pos.psq_score();
-
-  // Blend nnue complexity with (semi)classical complexity
-  Value optimism = pos.this_thread()->optimism[pos.side_to_move()];
-  nnueComplexity = (  396 * nnueComplexity
-                    + 415 * abs(psq - nnue)
-                    + (optimism > 0 ? int(optimism) * int(psq - nnue) : 0)
-                    ) / 1024;
+  Value v = NNUE::evaluate(pos, &nnueComplexity);
+  // Blend nnue complexity with material complexity
+  nnueComplexity = (13 * nnueComplexity + 128 * abs(v - pos.material_diff())) / 310;
   if (complexity) // Return hybrid NNUE complexity to caller
       *complexity = nnueComplexity;
 
-  // scale nnue score according to material and optimism
-  int scale = 967 + 141 * pos.material() / 4096;
-  optimism = optimism * (260 + nnueComplexity) / 256;
-  Value v = (nnue * scale + optimism * (scale - 854)) / 1024;
+  int scale = 1068 + 147 * pos.material_sum() / 4302;
+  Value optimism = pos.this_thread()->optimism[pos.side_to_move()];
+  optimism = optimism * (275 + nnueComplexity) / 238;
+  v = (v * scale + optimism * (scale - 751)) / 918;
 
   // Damp down the evaluation linearly when shuffling
-  v = v * (126 - pos.rule60_count()) / 120;
+  v = v * (119 - pos.rule60_count()) / 119;
 
   // Guarantee evaluation does not hit the mate range
   v = std::clamp(v, VALUE_MATED_IN_MAX_PLY + 1, VALUE_MATE_IN_MAX_PLY - 1);

@@ -1,6 +1,6 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (C) 2004-2023 The Stockfish developers (see AUTHORS file)
+  Copyright (C) 2004-2022 The Stockfish developers (see AUTHORS file)
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ void* start_routine(void* ptr)
    P* p = reinterpret_cast<P*>(ptr);
    (p->first->*(p->second))(); // Call member function pointer
    delete p;
-   return nullptr;
+   return NULL;
 }
 
 class NativeThread {
@@ -56,7 +56,7 @@ public:
     pthread_attr_setstacksize(attr, TH_STACK_SIZE);
     pthread_create(&thread, attr, start_routine<T>, new P(obj, fun));
   }
-  void join() { pthread_join(thread, nullptr); }
+  void join() { pthread_join(thread, NULL); }
 };
 
 } // namespace Stockfish
@@ -65,7 +65,7 @@ public:
 
 namespace Stockfish {
 
-using NativeThread = std::thread;
+typedef std::thread NativeThread;
 
 } // namespace Stockfish
 
