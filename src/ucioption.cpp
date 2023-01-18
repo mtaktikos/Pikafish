@@ -71,6 +71,7 @@ void init(OptionsMap& o) {
   o["Move Overhead"]         << Option(10, 0, 5000);
   o["Slow Mover"]            << Option(100, 10, 1000);
   o["nodestime"]             << Option(0, 0, 10000);
+  o["UCI_Chess960"]          << Option(false);  
   o["Rule60"]                << Option(true, on_rule60);
   o["Strict3Fold"]           << Option(false, on_strict3fold);
   o["UCI_LimitStrength"]     << Option(false);
@@ -78,6 +79,7 @@ void init(OptionsMap& o) {
   o["UCI_WDLCentipawn"]      << Option(true);
   o["UCI_ShowWDL"]           << Option(false);
   o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);
+  o["UCI_Variant"]           << Option("chess", "xiangqi", {});
 }
 
 
@@ -95,6 +97,9 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
               if (o.type == "string" || o.type == "check" || o.type == "combo")
                   os << " default " << o.defaultValue;
+            
+              if (o.type == "combo")
+                      os << " var " << o.currentValue;
 
               if (o.type == "spin")
                   os << " default " << int(stof(o.defaultValue))
